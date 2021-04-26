@@ -10,11 +10,15 @@ import (
 	"slisenko.com/kslisenko/golang-rest/internal/service"
 )
 
+type Controller struct {
+	Repo *service.InMemoryTaskRepository
+}
+
 // Controller/transport layer
-func GetTasks(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetTasks(w http.ResponseWriter, r *http.Request) {
 	log.Println("getTasks called")
 
-	tasks := service.GetTasks()
+	tasks := c.Repo.GetTasks()
 
 	w.Header().Set("Content-Type", "application/json")
 	error := json.NewEncoder(w).Encode(tasks)
@@ -23,14 +27,14 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetTaskById(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) GetTaskById(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id := params["id"]
 
 	log.Println("getTaskById called", id)
 	w.Header().Set("Content-Type", "application/json")
 
-	task, err := service.GetTaskById(id)
+	task, err := c.Repo.GetTaskById(id)
 
 	if err != nil {
 		log.Fatal("error getting task", err)
@@ -40,7 +44,7 @@ func GetTaskById(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(task)
 }
 
-func AddTask(w http.ResponseWriter, r *http.Request) {
+func (c *Controller) AddTask(w http.ResponseWriter, r *http.Request) {
 	log.Println("addTask called")
 	var task model.Task
 
@@ -51,6 +55,6 @@ func AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service.AddTask(&task)
+	c.Repo.AddTask(&task)
 	log.Println("Added task", task)
 }
