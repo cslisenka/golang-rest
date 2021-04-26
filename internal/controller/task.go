@@ -11,14 +11,14 @@ import (
 )
 
 type Controller struct {
-	Repo *service.InMemoryTaskRepository
+	Repo *service.TaskService
 }
 
 // Controller/transport layer
 func (c *Controller) GetTasks(w http.ResponseWriter, r *http.Request) {
 	log.Println("getTasks called")
 
-	tasks := c.Repo.GetTasks()
+	tasks := (*c.Repo).GetTasks()
 
 	w.Header().Set("Content-Type", "application/json")
 	error := json.NewEncoder(w).Encode(tasks)
@@ -34,7 +34,7 @@ func (c *Controller) GetTaskById(w http.ResponseWriter, r *http.Request) {
 	log.Println("getTaskById called", id)
 	w.Header().Set("Content-Type", "application/json")
 
-	task, err := c.Repo.GetTaskById(id)
+	task, err := (*c.Repo).GetTaskById(id)
 
 	if err != nil {
 		log.Fatal("error getting task", err)
@@ -55,6 +55,6 @@ func (c *Controller) AddTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c.Repo.AddTask(&task)
+	(*c.Repo).AddTask(&task)
 	log.Println("Added task", task)
 }

@@ -102,10 +102,10 @@ func main() {
 
 	// defer searchResp.Body.Close()
 
-	memRepo := service.InMemoryTaskRepository{}
-	memRepo.InitSampleData()
+	var taskService service.TaskService = &service.InMemoryTaskRepository{}
+	taskService.InitSampleData()
 
-	controller := controller.Controller{Repo: &memRepo}
+	controller := controller.Controller{Repo: &taskService}
 
 	r := mux.NewRouter()
 	// Define routes
