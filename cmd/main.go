@@ -102,7 +102,12 @@ func main() {
 
 	// defer searchResp.Body.Close()
 
-	var taskService service.TaskService = &service.InMemoryTaskRepository{}
+	//var taskService service.TaskService = &service.InMemoryTaskRepository{}
+	var taskService service.TaskService = &service.ElasticSearchTaskRepository{
+		Host:      "http://localhost:9200",
+		IndexName: "tasks",
+	}
+	taskService.Init()
 	taskService.InitSampleData()
 
 	controller := controller.Controller{Repo: &taskService}

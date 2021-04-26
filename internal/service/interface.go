@@ -3,11 +3,13 @@ package service
 import "slisenko.com/kslisenko/golang-rest/internal/model"
 
 type TaskService interface {
-	InitSampleData()
+	Init() error
 
-	GetTasks() []model.Task
+	InitSampleData() error
 
-	AddTask(task *model.Task)
+	GetTasks() ([]model.Task, error)
+
+	AddTask(task *model.Task) error
 
 	GetTaskById(id string) (model.Task, error)
 }

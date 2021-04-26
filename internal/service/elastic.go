@@ -14,10 +14,10 @@ import (
 
 // Service layer
 type ElasticSearchTaskRepository struct {
-	es *elasticsearch.Client
+	Host      string
+	IndexName string
+	es        *elasticsearch.Client
 }
-
-const IndexName string = "tasks"
 
 // Internal data structures
 type elasticResponse struct {
@@ -31,10 +31,17 @@ type elasticResponse struct {
 	} `json:"hits"`
 }
 
-func (tasks *ElasticSearchTaskRepository) Init(host string) error {
+type elasticGetResponse struct {
+	Source struct {
+		Id          string `json:"id"`
+		Description string `json:"description"`
+	} `json:"_source"`
+}
+
+func (tasks *ElasticSearchTaskRepository) Init() error {
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			host,
+			tasks.Host,
 		},
 	}
 
@@ -48,47 +55,49 @@ func (tasks *ElasticSearchTaskRepository) Init(host string) error {
 
 	info, err := es.Nodes.Info()
 	if err != nil {
-		log.Fatalf("Error calling elastic %s", err)
+		log.Println("Error calling elastic", err)
+		return err
 	}
 	log.Printf("Getting elasticsearch node info, status %s", info.Status())
 
 	return nil
 }
 
-func (tasks *ElasticSearchTaskRepository) InitSampleData() {
-	tasks.AddTask(&model.Task{ID: "1", Description: "Task 1"})
-	tasks.AddTask(&model.Task{ID: "2", Description: "Task 2"})
+func (tasks *ElasticSearchTaskRepository) InitSampleData() error {
+	err1 := tasks.AddTask(&model.Task{ID: "1", Description: "Task 1"})
+	err2 := tasks.AddTask(&model.Task{ID: "2", Description: "Task 2"})
+
+	if err1 != nil || err2 != nil {
+		return errors.New(err1.Error() + err2.Error())
+	}
+
+	return nil
 }
 
-func (tasks *ElasticSearchTaskRepository) GetTasks() { //[]model.Task
+func (tasks *ElasticSearchTaskRepository) GetTasks() ([]model.Task, error) {
 	// Find all documents
 	searchReq := esapi.SearchRequest{
-		Index: []string{IndexName},
+		Index: []string{tasks.IndexName},
 	}
 
 	searchResp, err := searchReq.Do(context.Background(), tasks.es)
 
 	if err != nil {
-		log.Fatalf("Error searching documents %s", err)
+		log.Println("Error searching documents", err)
 	}
 
 	defer searchResp.Body.Close()
 
-	log.Println(searchResp)
-	// Decode json, create structure for JSON parsing
-	// Create structure that match JSON output
+	log.Println("elastic search response", searchResp)
 
-	parseElasticSearchResponse(searchResp)
-
-	// log.Println(parsedResponse.Hits.Hits)
-
+	return parseElasticSearchResponse(searchResp)
 }
 
-func (tasks *ElasticSearchTaskRepository) AddTask(task *model.Task) {
+func (tasks *ElasticSearchTaskRepository) AddTask(task *model.Task) error {
 	newTaskJson, _ := json.Marshal(task)
 
 	indexReq := esapi.IndexRequest{
-		Index:      IndexName,
+		Index:      tasks.IndexName,
 		DocumentID: task.ID,
 		Body:       bytes.NewReader(newTaskJson),
 		Refresh:    "true",
@@ -97,39 +106,58 @@ func (tasks *ElasticSearchTaskRepository) AddTask(task *model.Task) {
 	indexResp, err := indexReq.Do(context.Background(), tasks.es)
 
 	if err != nil || indexResp.IsError() {
-		log.Fatalf("Error indexing document %s", err)
-		return
+		log.Println("Error indexing document", err)
+		return err
 	}
 
 	defer indexResp.Body.Close()
 
-	log.Println(indexResp)
+	log.Println("elastic add task response", indexResp)
+
+	return nil
 }
 
 func (tasks *ElasticSearchTaskRepository) GetTaskById(id string) (model.Task, error) {
 	findByIdReq := esapi.GetRequest{
-		Index:      IndexName,
+		Index:      tasks.IndexName,
 		DocumentID: id,
 	}
 
 	findByIdResp, err := findByIdReq.Do(context.Background(), tasks.es)
 	if err != nil || findByIdResp.IsError() {
-		log.Fatalf("Error finding document %s %s", err, findByIdResp)
+		log.Println("Error finding document", err, findByIdResp)
 	}
 
 	defer findByIdResp.Body.Close()
 
-	log.Println(findByIdResp)
+	log.Println("elastic get by ID response", findByIdResp)
 
-	// TODO parse response
-
-	return model.Task{}, errors.New("task not found")
+	return parseElasticGetResponse(findByIdResp)
 }
 
-// TODO methods for response parsing
-func parseElasticSearchResponse(resp *esapi.Response) { //[]model.Task
+func parseElasticSearchResponse(resp *esapi.Response) ([]model.Task, error) {
 	var parsedResponse elasticResponse
-	json.NewDecoder(resp.Body).Decode(&parsedResponse)
+	err := json.NewDecoder(resp.Body).Decode(&parsedResponse)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Println(parsedResponse)
+	var tasks []model.Task = []model.Task{}
+	for _, hit := range parsedResponse.Hits.Hits {
+		tasks = append(tasks, model.Task{ID: hit.Source.Id, Description: hit.Source.Description})
+	}
+	return tasks, nil
+}
+
+func parseElasticGetResponse(resp *esapi.Response) (model.Task, error) {
+	var parsedResponse elasticGetResponse
+	err := json.NewDecoder(resp.Body).Decode(&parsedResponse)
+	if err != nil {
+		return model.Task{}, err
+	}
+
+	return model.Task{
+		ID:          parsedResponse.Source.Id,
+		Description: parsedResponse.Source.Description,
+	}, nil
 }

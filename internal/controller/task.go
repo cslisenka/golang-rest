@@ -18,12 +18,12 @@ type Controller struct {
 func (c *Controller) GetTasks(w http.ResponseWriter, r *http.Request) {
 	log.Println("getTasks called")
 
-	tasks := (*c.Repo).GetTasks()
+	tasks, _ := (*c.Repo).GetTasks()
 
 	w.Header().Set("Content-Type", "application/json")
 	error := json.NewEncoder(w).Encode(tasks)
 	if error != nil {
-		log.Fatal(error)
+		log.Println(error)
 	}
 }
 
@@ -37,7 +37,7 @@ func (c *Controller) GetTaskById(w http.ResponseWriter, r *http.Request) {
 	task, err := (*c.Repo).GetTaskById(id)
 
 	if err != nil {
-		log.Fatal("error getting task", err)
+		log.Println("error getting task", err)
 		w.WriteHeader(http.StatusNotFound)
 	}
 
@@ -50,7 +50,7 @@ func (c *Controller) AddTask(w http.ResponseWriter, r *http.Request) {
 
 	error := json.NewDecoder(r.Body).Decode(&task)
 	if error != nil {
-		log.Fatal("Error parsing request JSON", r.Body)
+		log.Println("Error parsing request JSON", r.Body)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
