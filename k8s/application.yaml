@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
+        env:
+        - name: discovery.type
+          value: single-node
+        ports:
+        - containerPort: 9200
+        - containerPort: 9300
+---
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: elasticsearch-service
+    spec:
+      selector:
+        app: elasticsearch
+      ports:
+      - port: 9200
+        protocol: TCP
+        targetPort: 9200
+      type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: golang-rest-deployment
+  labels:
+    app: golang-rest
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: golang-rest
+  template:
+    metadata:
+      labels:
+        app: golang-rest
+    spec:
+      containers:
+      - name: golang-rest
+        image: golang-rest:1.0
+        env:
+        - name: ELASTIC_HOST
+          value: elasticsearch-service
+        - name: ELASTIC_PORT
+          value: '9200'
+        ports:
+        - containerPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: golang-rest-service
+spec:
+  selector:
+    app: golang-rest
+  ports:
+  - nodePort: 30090
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  type: NodePort

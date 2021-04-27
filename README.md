@@ -30,3 +30,13 @@ Create document: POST http://localhost:9200/tasks/_doc/1
 
 Get all documents: GET http://localhost:9200/tasks/_search
 Get document by ID: GET http://localhost:9200/tasks/_doc/1
+
+# kubernetes (minikube)
+using own docker daemon, we need switch to it
+eval $(minikube -p minikube docker-env)
+
+Deploy app and services:
+kubectl apply -f k8s/application.yaml
+
+Get public IP/port of the NodePort service:
+minikube service --url golang-rest-service
