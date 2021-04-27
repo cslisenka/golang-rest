@@ -11,9 +11,15 @@ RUN ls -la
 RUN go build -a cmd/main.go
 
 FROM scratch
+
 LABEL AUTHOR=kslisenka
+
+ENV ELASTIC_HOST=localhost
+ENV ELASTIC_PORT=9200
 EXPOSE 9090
+
 WORKDIR /app
 COPY --from=builder /src/main .
+
 ## Define container process
 CMD ["./main"]
