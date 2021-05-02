@@ -16,12 +16,24 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      ELASTIC_HOST: elastic
-      ELASTIC_PORT: 9200      
+      ELASTIC_HOST: proxy-elastic
+      ELASTIC_PORT: 10000
+      #ELASTIC_HOST: elastic
+      #ELASTIC_PORT: 9200         
     networks:
       edge:
     ports:
       - 9090:9090
+
+  proxy-elastic:
+    build:
+      context: .
+      dockerfile: Dockerfile-envoy
+    networks:
+      edge:
+    ports:
+      - "10000:10000"
+      - "9901:9901"
 
 networks:
   edge:
