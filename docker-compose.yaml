@@ -5,14 +5,24 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.12.0
     environment:
         discovery.type: single-node
+    networks:
+      edge:        
     ports:
       - 9200:9200
       - 9300:9300
+      
   app:
-    container_name: golang-rest-compose-2
-    image: golang-rest:1.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
-        ELASTIC_HOST: elastic
-        ELASTIC_PORT: 9200
+      ELASTIC_HOST: elastic
+      ELASTIC_PORT: 9200      
+    networks:
+      edge:
     ports:
-      - 9090:9090      
+      - 9090:9090
+
+networks:
+  edge:
+    name: edge
