@@ -40,3 +40,7 @@ kubectl apply -f k8s/application.yaml
 
 Get public IP/port of the NodePort service:
 minikube service --url golang-rest-service
+
+# envoy
+testing configuration
+docker run -p 10000:10000 -p 8001:8001 -v /home/constantine/education/go/golang-rest/k8s/envoy.yaml:/etc/envoy/envoy.yaml:ro envoyproxy/envoy-dev:latest
